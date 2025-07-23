@@ -1,0 +1,110 @@
+procs:
+  VM TTY:
+    shell: |
+      qemu-system-x86_64 \
+        -m "$MEMORY" \
+        -smp "2" \
+        -enable-kvm \
+        -boot "order=cd,menu=on" \
+        -d "guest_errors,unimp" \
+        -drive "file=$IMAGE,if=none,id=disk0" \
+        -device "virtio-blk-pci,drive=disk0,bootindex=0" \
+        -netdev "user,id=net0,hostfwd=tcp::$SSH_PORT-:22,tftp=$TFTP_DIR,bootfile=test.ipxe" \
+        -device "virtio-net,netdev=net0,bootindex=1" \
+        -vnc ":$((VNC_PORT - 5900))" \
+        -serial "mon:stdio" \
+        -monitor "tcp:127.0.0.1:$MONITOR_PORT,server,nowait"
+
+    cwd: "."
+    autostart: true
+
+  Serial Monitor:
+    shell: |
+      echo "Waiting for QEMU monitor on port $MONITOR_PORT..."
+      while ! nc -z 127.0.0.1 "$MONITOR_PORT"; do
+        sleep 0.5
+      done
+      echo "Connecting to QEMU monitor..."
+      nc 127.0.0.1 "$MONITOR_PORT"
+    cwd: "."
+    autostart: true
+
+  VNC Viewer:
+    shell: |
+      vncviewer "localhost:$((VNC_PORT - 5900))"
+    cwd: "."
+    autostart: false
+
+  SSH:
+    shell: |
+      echo -n "Enter user [$USERNAME]: "
+      read USER
+      echo "Waiting for SSH server on port $SSH_PORT..."
+      while ! nc -z 127.0.0.1 "$SSH_PORT"; do
+        sleep 0.5
+      done
+      echo "Connecting via SSH..."
+      ssh -o "StrictHostKeyChecking=no" \
+          -o "UserKnownHostsFile=/dev/null" \
+          -p "$SSH_PORT" \
+          -i "$SSH_KEY_PATH" \
+          "${USERNAME:-"$USER"}@localhost"
+    cwd: "."
+    autostart: false
+
+  Recreate Disk:
+    shell: |
+      echo -n "Enter new disk size [$DISK_SIZE]: "
+      read NEW_DISK_SIZE
+      rm -f "$IMAGE"
+      qemu-img create -f qcow2 "$IMAGE" "${NEW_DISK_SIZE:=$DISK_SIZE}"
+      echo "Created $IMAGE @ $NEW_DISK_SIZE"
+    cwd: "."
+    autostart: false
+
+  Inspect Disk (VM must be stopped):
+    shell: |
+      if pgrep -f "qemu.*$IMAGE" > /dev/null; then
+        echo "ERROR: VM is still running. Stop the VM first, then run this."
+        exit 1
+      fi
+      echo "Mounting disk to inspect installation..."
+      mkdir -p /tmp/disk-inspect
+      sudo modprobe nbd max_part=8
+      sudo qemu-nbd --connect=/dev/nbd0 "$IMAGE"
+      sleep 1
+      echo "Partitions found:"
+      ls -l /dev/nbd0* 2>/dev/null || echo "No partitions detected"
+      sudo mount /dev/nbd0p2 /tmp/disk-inspect 2>/dev/null || echo "Failed to mount root partition"
+      sudo mount /dev/nbd0p1 /tmp/disk-inspect/boot 2>/dev/null || echo "Failed to mount boot partition"
+      echo ""
+      echo "=== Boot partition contents ==="
+      sudo ls -la /tmp/disk-inspect/boot/ 2>/dev/null || echo "No boot directory"
+      echo ""
+      echo "=== EFI contents ==="
+      sudo ls -la /tmp/disk-inspect/boot/EFI/ 2>/dev/null || echo "No EFI directory"
+      sudo ls -la /tmp/disk-inspect/boot/EFI/BOOT/ 2>/dev/null || echo "No EFI/BOOT directory"
+      sudo ls -la /tmp/disk-inspect/boot/EFI/systemd/ 2>/dev/null || echo "No EFI/systemd directory"
+      sudo ls -la /tmp/disk-inspect/boot/EFI/nixos/ 2>/dev/null || echo "No EFI/nixos directory"
+      echo ""
+      echo "=== Boot loader configuration ==="
+      sudo ls -la /tmp/disk-inspect/boot/loader/ 2>/dev/null || echo "No loader directory"
+      sudo cat /tmp/disk-inspect/boot/loader/loader.conf 2>/dev/null || echo "No loader.conf"
+      echo ""
+      echo "=== Boot entries ==="
+      sudo ls -la /tmp/disk-inspect/boot/loader/entries/ 2>/dev/null || echo "No entries directory"
+      sudo cat /tmp/disk-inspect/boot/loader/entries/*.conf 2>/dev/null || echo "No boot entries found"
+      echo ""
+      echo "=== Root filesystem ==="
+      sudo ls -la /tmp/disk-inspect/ 2>/dev/null || echo "No root filesystem"
+      echo ""
+      echo "=== NixOS store ==="
+      sudo ls -la /tmp/disk-inspect/nix/ 2>/dev/null || echo "No /nix directory"
+      echo ""
+      echo "Cleaning up..."
+      sudo umount /tmp/disk-inspect/boot 2>/dev/null || true
+      sudo umount /tmp/disk-inspect 2>/dev/null || true
+      sudo qemu-nbd --disconnect /dev/nbd0
+      rmdir /tmp/disk-inspect 2>/dev/null || true
+    cwd: "."
+    autostart: false
