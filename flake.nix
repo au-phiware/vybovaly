@@ -104,7 +104,6 @@
           # Network boot tools
           dnsmasq
           tftp-hpa
-          nginx
           miniserve
 
           # Network testing
@@ -153,8 +152,8 @@
           installer = buildInstallerImage { variant = "minimal"; };
         };
 
-        # Test scripts
-        testScripts = {
+        # Development scripts
+        devScripts = {
           # Build all variants
           build-all = pkgs.writeShellScriptBin "build-all-variants" ''
             set -euo pipefail
@@ -171,8 +170,6 @@
 
           # Clean build artifacts
           clean-build = pkgs.writeShellScriptBin "clean-build" ''
-            set -euo pipefail
-
             echo "Cleaning build artifacts..."
 
             # Remove result symlinks
@@ -180,9 +177,6 @@
 
             # Remove build directory
             rm -rf build/
-
-            # Remove test files
-            rm -f test-disk.qcow2
 
             echo "Clean completed!"
           '';
@@ -228,7 +222,7 @@
 
             # Default package
             default = minimal.kernel;
-          } // testScripts;
+          } // devScripts;
 
         # Development shell
         devShells.default = pkgs.mkShell {
@@ -237,20 +231,16 @@
           shellHook = ''
             echo "🚀 Vybovaly Development Environment"
             echo "Available commands:"
-            echo "  build-all-variants  - Build all installer variants"
-            echo "  test-vm [variant]   - Start test VM (variants: minimal, more)"
-            echo "  test-pxe-server     - Start HTTP server for PXE testing"
+            echo "  build-all           - Build all installer variants"
             echo "  clean-build         - Clean all build artifacts"
             echo ""
             echo "Development tools available:"
             echo "  nix, nixpkgs-fmt, nil (LSP)"
-            echo "  dnsmasq, nginx, qemu"
+            echo "  dnsmasq, miniserve, qemu"
             echo "  shellcheck, jq, curl, git"
             echo ""
-            echo "Quick start:"
-            echo "  1. test-pxe-server 8080"
-            echo "  2. test-vm minimal"
-            echo "  3. Point VM network boot to http://localhost:8080/nixos-install.ipxe"
+            echo "VM test environment:"
+            echo "  nix run .#vm-test-env"
             echo ""
 
             # Set up git hooks if not already done
@@ -260,9 +250,6 @@
             #!/usr/bin/env bash
             # Format Nix files
             nixpkgs-fmt -- **/*.nix
-
-            # Check shell scripts
-            find . -name "*.sh" -exec shellcheck {} \;
 
             # Validate flake
             nix flake check
@@ -287,7 +274,7 @@
 
           # Shell script validation
           shellcheck = pkgs.runCommand "shellcheck" {} ''
-            ${pkgs.findutils}/bin/find ${./.} -name "*.sh" -exec ${pkgs.shellcheck}/bin/shellcheck {} \;
+            ${pkgs.findutils}/bin/find ${self} -name "*.sh" -exec ${pkgs.shellcheck}/bin/shellcheck {} \;
             touch $out
           '';
 
@@ -315,20 +302,22 @@
       nixosModules = {
         gpu-server = import ./modules/gpu.nix;
         ml-stack = import ./modules/ml-stack.nix;
-        monitoring = import ./modules/monitoring.nix;
         installer = import ./installer;
       };
 
       # Example configurations
       nixosConfigurations = {
-        # Example GPU server configuration
-        example-gpu-server = nixpkgs.lib.nixosSystem {
+        # Example GPU compute server with Jupyter
+        example-gpu-compute = nixpkgs.lib.nixosSystem {
           system = "x86_64-linux";
           modules = [
-            ./examples/gpu-server-configuration.nix
             self.nixosModules.gpu-server
             self.nixosModules.ml-stack
-            self.nixosModules.monitoring
+            {
+              system.stateVersion = "24.05";
+              networking.hostName = "gpu-compute-example";
+              services.ml-stack.enable = true;
+            }
           ];
         };
       };

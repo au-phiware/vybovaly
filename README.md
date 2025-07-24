@@ -88,7 +88,7 @@ cd vybovaly-installer
 
 # Create your flake configuration
 mkdir -p hosts/gpu-server-01
-cp examples/configuration.nix hosts/gpu-server-01/
+cp nixos-configurations/flakes/gpu-compute/* hosts/gpu-server-01/
 ```
 
 ### Step 2: Configure GitHub Actions
