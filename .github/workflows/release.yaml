@@ -50,9 +50,13 @@ jobs:
         if [[ "${{ github.event_name }}" == "release" ]]; then
           VERSION=${{ github.event.release.tag_name }}
           RELEASE_TAG=${{ github.event.release.tag_name }}
-        else
+        elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
           VERSION=${{ github.event.inputs.tag_name }}
           RELEASE_TAG=${{ github.event.inputs.tag_name }}
+        else
+          # For push events, use commit SHA as version
+          VERSION="dev-${GITHUB_SHA::8}"
+          RELEASE_TAG="dev-${GITHUB_SHA::8}"
         fi
 
         echo "version=$VERSION" >> $GITHUB_OUTPUT
