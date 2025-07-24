@@ -91,11 +91,8 @@ jobs:
     - name: Create Cachix pin
       run: |
         echo "Creating Cachix pin for release ${{ steps.version.outputs.version }}"
-        cachix pin ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }} ${{ steps.version.outputs.version }} \
-          result/bzImage \
-          result/initrd \
-          result/netboot.ipxe \
-          result/checksums.txt
+        # Pin the entire build result (store path)
+        cachix pin ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }} ${{ steps.version.outputs.version }} result
 
     - name: Verify artifacts
       run: |
