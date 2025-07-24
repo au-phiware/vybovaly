@@ -83,8 +83,8 @@ using iPXE, with support for flake-based configurations and CI/CD integration.
 
 ```bash
 # Clone and customize
-git clone https://github.com/au-phiware/vybovaly-installer
-cd vybovaly-installer
+git clone https://github.com/au-phiware/vybovaly
+cd vybovaly
 
 # Create your flake configuration
 mkdir -p hosts/gpu-server-01
@@ -155,7 +155,7 @@ set hostname gpu-server-01
 set disk_layout single
 
 # Chain to the installer
-chain https://github.com/au-phiware/vybovaly-installer/releases/latest/download/nixos-install.ipxe
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/nixos-install.ipxe
 ```
 
 ### NixOS Flake Structure
@@ -202,7 +202,6 @@ Each build produces:
 
 - `bzImage` - Custom Linux kernel
 - `initrd` - Initial ramdisk with installer
-- `vybovaly-installer.sh` - Installation script
 - `vybovaly.ipxe` - Main iPXE script
 - `boot-menu.ipxe` - Interactive boot menu
 - `version.json` - Build metadata and checksums
@@ -277,7 +276,7 @@ set username researcher
 set ssh_key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq..."
 set flake_url https://github.com/ml-lab/gpu-configs
 set hostname ai-workstation-01
-chain https://github.com/au-phiware/vybovaly-installer/releases/latest/download/nixos-install.ipxe
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
 ```
 
 ### Example 2: Multi-GPU Cluster Node
@@ -289,7 +288,7 @@ set ssh_key "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB..."
 set flake_url https://github.com/company/hpc-cluster-config
 set hostname gpu-node-${mac:hexhyp}
 set disk_layout raid
-chain https://github.com/au-phiware/vybovaly-installer/releases/latest/download/nixos-install.ipxe
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
 ```
 
 ### Example 3: DHCP Integration
@@ -328,7 +327,7 @@ set hostname ${hostname:${base_url}/hostname}
 set ssh_key ${ssh_key:${base_url}/public-keys/0/openssh-key}
 set flake_url https://github.com/company/cloud-nixos-config
 
-chain https://github.com/au-phiware/vybovaly-installer/releases/latest/download/nixos-install.ipxe
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
 ```
 
 ### Example 5: Development Environment
@@ -363,5 +362,5 @@ set environment production
 set monitoring_endpoint https://monitoring.company.com
 set backup_target s3://company-backups/nixos
 
-chain https://github.com/au-phiware/vybovaly-installer/releases/v2.1.0/download/nixos-install.ipxe
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
 ```

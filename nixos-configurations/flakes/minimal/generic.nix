@@ -4,7 +4,8 @@
 
 {
   imports =
-    [ (modulesPath + "/profiles/minimal.nix")
+    [
+      (modulesPath + "/profiles/minimal.nix")
       (modulesPath + "/hardware/all-hardware.nix")
       (modulesPath + "/hardware/all-firmware.nix")
     ];
@@ -13,11 +14,11 @@
   boot.loader.grub = {
     enable = lib.mkDefault true;
     efiSupport = lib.mkDefault true;
-    device = lib.mkDefault "nodev";  # For EFI, don't install to MBR
+    device = lib.mkDefault "nodev"; # For EFI, don't install to MBR
     useOSProber = lib.mkDefault false;
   };
   boot.loader.efi.canTouchEfiVariables = lib.mkDefault true;
-  
+
   # Enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
@@ -29,7 +30,7 @@
   networking = {
     hostName = lib.mkDefault "nixos";
     networkmanager.enable = lib.mkDefault true;
-    
+
     # Basic firewall
     firewall = {
       enable = lib.mkDefault true;
@@ -100,12 +101,14 @@
 
   # Filesystem configuration (should match disko labels)
   fileSystems."/" =
-    { device = "/dev/disk/by-label/nixos";
+    {
+      device = "/dev/disk/by-label/nixos";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-label/boot";
+    {
+      device = "/dev/disk/by-label/boot";
       fsType = "vfat";
       options = [ "fmask=0022" "dmask=0022" ];
     };

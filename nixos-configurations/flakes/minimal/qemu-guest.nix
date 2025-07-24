@@ -3,7 +3,8 @@
 
 {
   imports =
-    [ (modulesPath + "/profiles/minimal.nix")
+    [
+      (modulesPath + "/profiles/minimal.nix")
       (modulesPath + "/profiles/qemu-guest.nix")
     ];
 
@@ -16,7 +17,7 @@
     device = "/dev/vda";
     useOSProber = lib.mkDefault false;
   };
-  
+
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 
   # Enable flakes
@@ -28,7 +29,7 @@
   networking = {
     hostName = lib.mkDefault "nixos";
     networkmanager.enable = lib.mkDefault true;
-    
+
     # Basic firewall
     firewall = {
       enable = lib.mkDefault true;
@@ -99,12 +100,14 @@
 
   # Filesystem configuration (should match disko labels)
   fileSystems."/" =
-    { device = "/dev/disk/by-label/nixos";
+    {
+      device = "/dev/disk/by-label/nixos";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-label/boot";
+    {
+      device = "/dev/disk/by-label/boot";
       fsType = "ext4";
     };
 

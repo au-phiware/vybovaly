@@ -214,9 +214,6 @@ Integrate with cloud metadata services for dynamic configuration.
 1. **Prepare Infrastructure**:
 
    ```bash
-   # Host installer script
-   cp vybovaly-installer.sh /var/www/html/
-
    # Create flake repository
    git init nixos-config
    cd nixos-config

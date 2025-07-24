@@ -79,23 +79,22 @@ in
     };
 
     # CUDA Support
-    nixpkgs.config.allowUnfree = true;
+    nixpkgs.config.allowUnfree = cfg.cuda.enable;
 
     environment.systemPackages = with pkgs; mkMerge [
       # Base GPU tools
       [
-        nvidia-smi
-        nvtop
+        (mkIf cfg.nvidia.enable nvtopPackages.nvidia)
         glxinfo
       ]
 
       # CUDA packages
-      (mkIf cfg.cuda.enable [
+      (mkIf cfg.cuda.enable (with cudaPackages; [
         cudatoolkit
         cudnn
         nccl
         tensorrt
-      ])
+      ]))
 
       # Development tools
       [
@@ -108,20 +107,14 @@ in
     # Docker with GPU support
     virtualisation.docker = mkIf cfg.docker.enable {
       enable = true;
-      enableNvidia = cfg.nvidia.enable;
-      daemon.settings = {
-        default-runtime = "nvidia";
-        runtimes.nvidia = {
-          path = "${pkgs.nvidia-docker}/bin/nvidia-container-runtime";
-        };
-      };
     };
+    hardware.graphics.enable32Bit = cfg.nvidia.enable;
 
     # NVIDIA Container Toolkit
     hardware.nvidia-container-toolkit.enable = mkIf (cfg.nvidia.enable && cfg.docker.enable) true;
 
     # GPU Monitoring
-    services.prometheus.exporters.nvidia_gpu = mkIf cfg.monitoring.enable {
+    services.prometheus.exporters.nvidia-gpu = mkIf cfg.monitoring.enable {
       enable = true;
       port = 9835;
     };
@@ -148,8 +141,16 @@ in
     # Increase shared memory for multi-GPU workloads
     boot.kernel.sysctl = {
       "kernel.shm_rmid_forced" = 0;
+
+      # Increase shared memory for large datasets
       "kernel.shmmax" = 68719476736; # 64GB
-      "kernel.shmall" = 4294967296;
+      "kernel.shmall" = 4294967296; # 16GB in pages
+
+      # Network optimizations
+      "net.core.rmem_max" = 134217728;
+      "net.core.wmem_max" = 134217728;
+      "net.ipv4.tcp_rmem" = "4096 65536 134217728";
+      "net.ipv4.tcp_wmem" = "4096 65536 134217728";
     };
 
     # GPU memory and compute mode settings

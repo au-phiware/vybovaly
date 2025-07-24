@@ -7,6 +7,27 @@ with lib;
 
 let
   cfg = config.services.vybovaly-installer;
+  runtimeInputs = with pkgs; [
+    # Core system tools
+    coreutils
+    util-linux
+    procps
+
+    # Network tools
+    curl
+    openssh
+
+    # Disk management
+    e2fsprogs
+    dosfstools
+    mdadm
+    disko
+
+    # NixOS tools
+    nixos-install-tools
+    git
+    nix
+  ];
 in
 {
   options.services.vybovaly-installer = {
@@ -23,6 +44,18 @@ in
     environment.etc."vybovaly-installer-lib.sh" = {
       source = ./vybovaly-installer-lib.sh;
       mode = "0444";
+    };
+
+    system.build.vybovaly-installer = pkgs.writeShellApplication {
+      inherit runtimeInputs;
+
+      name = "vybovaly-installer";
+      text = ''
+        source ${./vybovaly-installer-lib.sh}
+        if should_run_automation "$@"; then
+          run_installer
+        fi
+      '';
     };
 
     # Use modern kernel
@@ -86,27 +119,7 @@ in
         NIX_PATH = "nixpkgs=${pkgs.path}";
       };
 
-      path = with pkgs; [
-        # Core system tools
-        coreutils
-        util-linux
-        procps
-
-        # Network tools
-        curl
-        openssh
-
-        # Disk management
-        e2fsprogs
-        dosfstools
-        mdadm
-        disko
-
-        # NixOS tools
-        nixos-install-tools
-        git
-        nix
-      ];
+      path = runtimeInputs;
 
       script = ''
         set -euo pipefail
