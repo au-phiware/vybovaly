@@ -41,13 +41,13 @@
               imports = [
                 installerModule
               ];
-              
+
               # Enable our auto-installer service
               services.vybovaly-installer.enable = true;
 
               # Set the NixOS state version for the installer
               system.stateVersion = "25.05";
-              
+
               # Variant-specific packages plus network debugging tools
               environment.systemPackages = variantPackages.${variant} or variantPackages.minimal;
 
@@ -73,7 +73,7 @@
               # Enable more verbose boot for debugging
               boot.initrd.verbose = true;
             };
-            
+
             # Build the netboot system
             netbootSystem = nixpkgs.lib.nixosSystem {
               system = "x86_64-linux";
@@ -152,7 +152,7 @@
         vmTestEnvironment = pkgs.callPackage ./packages/vm-test-env {
           installer = buildInstallerImage { variant = "minimal"; };
         };
-        
+
         # Test scripts
         testScripts = {
           # Build all variants
@@ -189,23 +189,46 @@
         };
 
       in {
-        # Development packages for each variant
-        packages = {
-          # Netboot packages (for iPXE/PXE with patched kernel)
-          installer-minimal-kernel = (buildInstallerImage { variant = "minimal"; }).kernel;
-          installer-minimal-initrd = (buildInstallerImage { variant = "minimal"; }).initrd;
-          installer-minimal-netboot = (buildInstallerImage { variant = "minimal"; }).ipxeScript;
-          
-          installer-more-kernel = (buildInstallerImage { variant = "more"; }).kernel;
-          installer-more-initrd = (buildInstallerImage { variant = "more"; }).initrd;
-          installer-more-netboot = (buildInstallerImage { variant = "more"; }).ipxeScript;
-          
-          # VM test environment
-          vm-test-env = vmTestEnvironment;
+        # Build artifacts for easy access
+        packages =
+          let
+            minimal = buildInstallerImage { variant = "minimal"; };
+            more = buildInstallerImage { variant = "more"; };
+          in {
+            # Main outputs - the three key artifacts for releases
+            bzImage = minimal.kernel;
+            initrd = minimal.initrd;
+            netboot-ipxe = minimal.ipxeScript;
 
-          # Default package
-          default = (buildInstallerImage { variant = "minimal"; }).kernel;
-        } // testScripts;
+            # Release bundle - all three artifacts with checksums
+            release-artifacts = pkgs.runCommand "vybovaly-release-artifacts" {} ''
+              mkdir -p $out
+
+              # Copy artifacts
+              cp ${minimal.kernel}/bzImage $out/bzImage
+              cp ${minimal.initrd}/initrd $out/initrd
+              cp ${minimal.ipxeScript}/netboot.ipxe $out/netboot.ipxe
+
+              # Generate checksums
+              cd $out
+              sha256sum bzImage initrd netboot.ipxe > checksums.txt
+            '';
+
+            # Variant-specific packages (for advanced users)
+            installer-minimal-kernel = minimal.kernel;
+            installer-minimal-initrd = minimal.initrd;
+            installer-minimal-netboot = minimal.ipxeScript;
+
+            installer-more-kernel = more.kernel;
+            installer-more-initrd = more.initrd;
+            installer-more-netboot = more.ipxeScript;
+
+            # VM test environment
+            vm-test-env = vmTestEnvironment;
+
+            # Default package
+            default = minimal.kernel;
+          } // testScripts;
 
         # Development shell
         devShells.default = pkgs.mkShell {
@@ -290,7 +313,24 @@
     ) // {
       # NixOS modules for easy import
       nixosModules = {
+        gpu-server = import ./modules/gpu.nix;
+        ml-stack = import ./modules/ml-stack.nix;
+        monitoring = import ./modules/monitoring.nix;
         installer = import ./installer;
+      };
+
+      # Example configurations
+      nixosConfigurations = {
+        # Example GPU server configuration
+        example-gpu-server = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            ./examples/gpu-server-configuration.nix
+            self.nixosModules.gpu-server
+            self.nixosModules.ml-stack
+            self.nixosModules.monitoring
+          ];
+        };
       };
 
       # Overlay for custom packages

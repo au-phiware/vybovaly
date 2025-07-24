@@ -1,0 +1,48 @@
+name: Build Check
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'installer/**'
+      - 'flake.nix'
+      - 'flake.lock'
+      - '.github/workflows/build.yaml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v27
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Cachix
+      uses: cachix/cachix-action@v15
+      with:
+        name: ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }}
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        skipPush: ${{ secrets.CACHIX_AUTH_TOKEN == '' }}
+
+
+    - name: Build and test artifacts
+      run: |
+        echo "Building Vybovaly artifacts..."
+
+        # Test the release-artifacts build
+        nix build .#release-artifacts --no-link
+
+        echo "✅ All builds completed successfully"
+
+    - name: Run flake checks
+      run: |
+        echo "Running flake checks..."
+        nix flake check
