@@ -18,38 +18,6 @@
         "type": "github"
       }
     },
-    "gpu-compute-nixos": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "path": "./nixos-configurations/flakes/gpu-compute",
-        "type": "path"
-      },
-      "original": {
-        "path": "./nixos-configurations/flakes/gpu-compute",
-        "type": "path"
-      },
-      "parent": []
-    },
-    "minimal-nixos": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "path": "./nixos-configurations/flakes/minimal",
-        "type": "path"
-      },
-      "original": {
-        "path": "./nixos-configurations/flakes/minimal",
-        "type": "path"
-      },
-      "parent": []
-    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1753345091,
@@ -69,8 +37,6 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "gpu-compute-nixos": "gpu-compute-nixos",
-        "minimal-nixos": "minimal-nixos",
         "nixpkgs": "nixpkgs"
       }
     },
