@@ -121,7 +121,9 @@
             # Nix tools
             nix
             nixpkgs-fmt
+            cachix
             nil # Nix language server
+            libsecret
 
             # Network boot tools
             dnsmasq
@@ -177,7 +179,7 @@
           # Development scripts
           devScripts = {
             # Build all variants
-            build-all = pkgs.writeShellScriptBin "build-all-variants" ''
+            build-all = pkgs.writeShellScriptBin "build-all" ''
               set -euo pipefail
               echo "Building all installer variants..."
 
@@ -194,6 +196,10 @@
             lint = pkgs.writeShellScriptBin "lint" ''
               ${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt -- **/*.nix
               ${pkgs.nix}/bin/nix flake check
+            '';
+
+            pin = pkgs.writeShellScriptBin "pin" ''
+              ${pkgs.cachix}/bin/cachix pin vybovaly $1 $(${pkgs.nix}/bin/nix build .#default --print-out-paths) --artifact bzImage --artifact checksums.txt --artifact initrd --artifact netboot.ipxe
             '';
 
             # Clean build artifacts
@@ -239,10 +245,14 @@
             buildInputs = devTools ++ (builtins.attrValues devScripts);
 
             shellHook = ''
+              export CACHIX_AUTH_TOKEN=$(${pkgs.libsecret}/bin/secret-tool lookup vybovaly.cachix.org CACHIX_AUTH_TOKEN)
+
               echo "🚀 Vybovaly Development Environment"
               echo "Available commands:"
               echo "  build-all           - Build all installer variants"
               echo "  clean-build         - Clean all build artifacts"
+              echo "  lint                - Run all linters"
+              echo "  pin version         - Pin build on vybovaly.cachix.org"
               echo ""
               echo "Development tools available:"
               echo "  nix, nixpkgs-fmt, nil (LSP)"
