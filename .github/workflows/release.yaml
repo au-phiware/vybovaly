@@ -62,8 +62,8 @@ jobs:
       run: |
         echo "Building Vybovaly release artifacts..."
 
-        # Build using the release-artifacts package for consistency
-        nix build .#release-artifacts
+        # Build
+        nix build
 
         # Create artifacts directory
         mkdir -p artifacts
@@ -134,10 +134,12 @@ jobs:
           Chain boot this iPXE script with your parameters:
 
           ```
-          set cmdline vyb.flake_url https://github.com/yourorg/nixos-config
-          set cmdline ${cmdline} vyb.hostname=yourhost
-          set cmdline ${cmdline} vyb.username=yourname
-          set cmdline ${cmdline} vyb.ssh_key="ssh-rsa AAAAB3..."
+          set flake_url https://github.com/yourorg/nixos-config
+          set hostname yourhost
+          set username yourname
+          set ssh_key "ssh-rsa AAAAB3..."
+          set disk_layout single
+          set access_tokens "github.com=your_pat"
           chain https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.release-tag }}/netboot.ipxe
           ```
 
@@ -159,7 +161,7 @@ jobs:
 
           ```bash
           cachix use ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }}
-          nix build github:${{ github.repository }}/${{ github.sha }}#release-artifacts
+          nix build github:${{ github.repository }}/${{ github.sha }}
           ```
         files: artifacts/*
         prerelease: false

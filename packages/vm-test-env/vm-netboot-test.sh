@@ -56,16 +56,15 @@ for f in "$TFTP_SRC"/*; do
 done
 
 # Build ipxe parameters
-cmdline+=("${USERNAME:+"vyb.username=$USERNAME"}")
-cmdline+=("${TEST_SSH_KEY:+"vyb.ssh_key='$TEST_SSH_KEY'"}")
-cmdline+=("${HOSTNAME:+"vyb.hostname=$HOSTNAME"}")
-cmdline+=("${DISK_LAYOUT:+"vyb.disk_layout=$DISK_LAYOUT"}")
-cmdline+=("${FLAKE_TARBALL:+"vyb.flake_url=tftp://10.0.2.2/$FLAKE_TARBALL"}")
-cmdline+=("${ACCESS_TOKENS:+"vyb.access_tokens='$ACCESS_TOKENS'"}")
-cmdline+=("${DEBUG:+"vyb.debug=1"}")
 {
   echo '#!ipxe'
-  echo "set cmdline ${cmdline[*]}"
+  echo "${FLAKE_TARBALL:+"set flake_url tftp://10.0.2.2/$FLAKE_TARBALL"}"
+  echo "${HOSTNAME:+"set hostname $HOSTNAME"}"
+  echo "${USERNAME:+"set username $USERNAME"}"
+  echo "${TEST_SSH_KEY:+"set ssh_key '$TEST_SSH_KEY'"}"
+  echo "${DISK_LAYOUT:+"set disk_layout $DISK_LAYOUT"}"
+  echo "${ACCESS_TOKENS:+"set access_tokens '$ACCESS_TOKENS'"}"
+  echo "${DEBUG:+"set debug 1"}"
   echo "chain netboot.ipxe"
 } > "$TFTP_DIR/test.ipxe"
 

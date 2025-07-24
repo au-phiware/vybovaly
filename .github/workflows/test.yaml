@@ -36,8 +36,8 @@ jobs:
       run: |
         echo "Building Vybovaly artifacts for testing..."
         
-        # Build using the release-artifacts package for consistency
-        nix build .#release-artifacts
+        # Build
+        nix build
 
     - name: Verify checksums
       run: |

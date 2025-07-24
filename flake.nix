@@ -107,7 +107,13 @@
             kernel = netbootSystem.config.system.build.kernel;
             initrd = netbootSystem.config.system.build.netbootRamdisk;
             squashfs = netbootSystem.config.system.build.squashfsStore;
-            ipxeScript = netbootSystem.config.system.build.netbootIpxeScript;
+            ipxeScript = pkgs.runCommand "vybovaly-ipxe-build" {} ''
+              mkdir -p $out
+              {
+                cat ${./ipxe/netboot.ipxe}
+                tail -n +2 ${netbootSystem.config.system.build.netbootIpxeScript}/netboot.ipxe
+              } > $out/netboot.ipxe
+            '';
 
             # For VM testing
             vm = netbootSystem.config.system.build.vm;
@@ -216,13 +222,8 @@
         {
           # Build artifacts for easy access
           packages = {
-            # Main outputs - the three key artifacts for releases
-            bzImage = minimal.kernel;
-            initrd = minimal.initrd;
-            netboot-ipxe = minimal.ipxeScript;
-
             # Release bundle - all three artifacts with checksums
-            release-artifacts = pkgs.runCommand "vybovaly-release-artifacts" { } ''
+            default = pkgs.runCommand "vybovaly-build" { } ''
               mkdir -p $out
 
               # Copy artifacts
@@ -235,20 +236,8 @@
               sha256sum bzImage initrd netboot.ipxe > checksums.txt
             '';
 
-            # Variant-specific packages (for advanced users)
-            installer-minimal-kernel = minimal.kernel;
-            installer-minimal-initrd = minimal.initrd;
-            installer-minimal-netboot = minimal.ipxeScript;
-
-            installer-more-kernel = more.kernel;
-            installer-more-initrd = more.initrd;
-            installer-more-netboot = more.ipxeScript;
-
             # VM test environment
             vm-test-env = vmTestEnvironment;
-
-            # Default package
-            default = minimal.kernel;
           } // devScripts;
 
           # Development shell
@@ -281,13 +270,13 @@
           # CI/CD checks
           checks = {
             # Shell script validation
-            shellcheck = pkgs.runCommand "shellcheck" { } ''
+            shellcheck = pkgs.runCommand "vybovaly-shellcheck" { } ''
               ${pkgs.findutils}/bin/find ${self} -name "*.sh" -exec ${pkgs.shellcheck}/bin/shellcheck {} \;
               touch $out
             '';
 
             # Nix formatting check
-            nixpkgs-fmt = pkgs.runCommand "nixpkgs-fmt-check" { } ''
+            nixpkgs-fmt = pkgs.runCommand "vybovaly-nixpkgs-fmt-check" { } ''
               ${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt --check ${self}/**/*.nix
               touch $out
             '';
