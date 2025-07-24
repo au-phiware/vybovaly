@@ -6,15 +6,9 @@
 
     # Flake utilities
     flake-utils.url = "github:numtide/flake-utils";
-
-    # Builtin NixOS Configurations
-    minimal-nixos.url = "path:./nixos-configurations/flakes/minimal";
-    minimal-nixos.inputs.nixpkgs.follows = "nixpkgs";
-    gpu-compute-nixos.url = "path:./nixos-configurations/flakes/gpu-compute";
-    gpu-compute-nixos.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, flake-utils, minimal-nixos, gpu-compute-nixos }:
+  outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem
       (system:
       let
@@ -302,15 +296,6 @@
           installer = import ./installer;
           gpu-server = import ./modules/gpu.nix;
           ml-stack = import ./modules/ml-stack.nix;
-        };
-
-        # Example configurations
-        nixosConfigurations = {
-          # Minimal system used in vm-test-env
-          minimal = minimal-nixos.nixosConfigurations.generic;
-
-          # Example GPU compute server with Jupyter
-          gpu-compute = gpu-compute-nixos.nixosConfigurations.gpu-compute;
         };
 
         # Overlay for custom packages
