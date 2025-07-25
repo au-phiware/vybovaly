@@ -67,7 +67,7 @@
               environment.systemPackages = variantPackages.${variant} or variantPackages.minimal;
 
               # Specify vyb.ssh_key and just use ssh
-              #users.users.root.password = "vybovaly";
+              #users.users.root.password = "not this";
 
               # Network configuration optimized for automation
               networking = {

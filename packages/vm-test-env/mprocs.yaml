@@ -1,3 +1,6 @@
+# Increase scrollback buffer for longer installation logs
+scrollback: 100000
+
 procs:
   VM TTY:
     shell: |
@@ -48,7 +51,7 @@ procs:
           -o "UserKnownHostsFile=/dev/null" \
           -p "$SSH_PORT" \
           -i "$SSH_KEY_PATH" \
-          "${USERNAME:-"$USER"}@localhost"
+          "${USER:-"$USERNAME"}@localhost"
     cwd: "."
     autostart: false
 
@@ -62,8 +65,14 @@ procs:
     cwd: "."
     autostart: false
 
+  Kill VM:
+    shell: 'kill -KILL $(pgrep -f "qemu.*$IMAGE")'
+    cwd: "."
+    autostart: false
+
   Inspect Disk (VM must be stopped):
     shell: |
+      set -euo pipefail
       if pgrep -f "qemu.*$IMAGE" > /dev/null; then
         echo "ERROR: VM is still running. Stop the VM first, then run this."
         exit 1
@@ -75,8 +84,8 @@ procs:
       sleep 1
       echo "Partitions found:"
       ls -l /dev/nbd0* 2>/dev/null || echo "No partitions detected"
-      sudo mount /dev/nbd0p2 /tmp/disk-inspect 2>/dev/null || echo "Failed to mount root partition"
-      sudo mount /dev/nbd0p1 /tmp/disk-inspect/boot 2>/dev/null || echo "Failed to mount boot partition"
+      sudo mount /dev/nbd0p3 /tmp/disk-inspect 2>/dev/null || echo "Failed to mount root partition"
+      sudo mount /dev/nbd0p2 /tmp/disk-inspect/boot 2>/dev/null || echo "Failed to mount boot partition"
       echo ""
       echo "=== Boot partition contents ==="
       sudo ls -la /tmp/disk-inspect/boot/ 2>/dev/null || echo "No boot directory"
@@ -98,8 +107,16 @@ procs:
       echo "=== Root filesystem ==="
       sudo ls -la /tmp/disk-inspect/ 2>/dev/null || echo "No root filesystem"
       echo ""
-      echo "=== NixOS store ==="
-      sudo ls -la /tmp/disk-inspect/nix/ 2>/dev/null || echo "No /nix directory"
+      # Check if /nix directory exists and use nixos-enter
+      if [ -d /tmp/disk-inspect/nix ]; then
+        echo "✅ NixOS installation found!"
+        echo "Entering interactive shell..."
+        echo "Type 'exit' to return and cleanup."
+        echo ""
+        sudo nixos-enter --root /tmp/disk-inspect
+      else
+        echo "No /nix directory"
+      fi
       echo ""
       echo "Cleaning up..."
       sudo umount /tmp/disk-inspect/boot 2>/dev/null || true

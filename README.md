@@ -149,7 +149,7 @@ Configure these parameters via DHCP options, iPXE script, or interactive prompt:
 
 # Set your parameters
 set username admin
-set ssh_key "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."
+set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...
 set flake_url https://github.com/your-org/nixos-gpu-config
 set hostname gpu-server-01
 set disk_layout single
@@ -273,7 +273,7 @@ nix run .#test-pxe-server -- 9000
 ```ipxe
 #!ipxe
 set username researcher
-set ssh_key "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq..."
+set ssh_key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq...
 set flake_url https://github.com/ml-lab/gpu-configs
 set hostname ai-workstation-01
 chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
@@ -284,7 +284,7 @@ chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ip
 ```ipxe
 #!ipxe
 set username cluster-admin
-set ssh_key "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB..."
+set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB...
 set flake_url https://github.com/company/hpc-cluster-config
 set hostname gpu-node-${mac:hexhyp}
 set disk_layout raid
@@ -337,7 +337,7 @@ Quick setup for development machines:
 ```ipxe
 #!ipxe
 set username developer
-set ssh_key "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB..."
+set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB...
 set flake_url https://github.com/team/dev-environment
 set hostname dev-${uuid}
 set disk_layout single
@@ -352,7 +352,7 @@ chain https://github.com/team/nixos-dev-setup/releases/latest/download/nixos-ins
 #!ipxe
 # Production deployment with pre-flight checks
 set username ops
-set ssh_key "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB..."
+set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB...
 set flake_url https://github.com/company/production-nixos
 set hostname prod-gpu-${serial}
 set disk_layout raid

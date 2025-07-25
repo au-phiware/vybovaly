@@ -154,9 +154,9 @@ jobs:
           set flake_url https://github.com/yourorg/nixos-config
           set hostname yourhost
           set username yourname
-          set ssh_key "ssh-rsa AAAAB3..."
+          set ssh_key ssh-rsa AAAAB3...
           set disk_layout single
-          set access_tokens "github.com=your_pat"
+          set access_tokens github.com=your_pat
           chain https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.release-tag }}/netboot.ipxe
           ```
 

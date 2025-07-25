@@ -5,7 +5,39 @@ installation system.
 
 ## Pre-Installation Issues
 
-### 1. PXE Boot Failures
+### 1. iPXE Script Configuration Issues
+
+#### Symptom: SSH authentication fails with "Permission denied (publickey)"
+
+**⚠️ IMPORTANT: Do NOT quote SSH keys in iPXE scripts**
+
+A common issue occurs when SSH keys are quoted in iPXE scripts, causing double-quoting in the kernel command line.
+
+**❌ WRONG:**
+```ipxe
+set ssh_key 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC...'
+```
+
+**✅ CORRECT:**
+```ipxe
+set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC...
+```
+
+**Why this happens:**
+- The iPXE script automatically adds quotes when constructing the kernel command line
+- Manual quotes result in: `vyb.ssh_key="'ssh-rsa AAAAB3...'"` (double-quoted)
+- The installer then receives the SSH key with embedded quotes, causing authentication failure
+
+**Other parameters that should NOT be quoted:**
+- `flake_url` - URLs should not be quoted
+- `hostname` - Hostnames should not be quoted  
+- `username` - Usernames should not be quoted
+- `cachix_cache` - Cache names should not be quoted
+
+**Parameters that CAN be quoted (if they contain spaces):**
+- `access_tokens` - Only if the token itself contains spaces (rare)
+
+### 2. PXE Boot Failures
 
 #### Symptom: Machine doesn't boot from network
 
