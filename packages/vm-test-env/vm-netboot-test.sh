@@ -64,6 +64,7 @@ done
   echo "${TEST_SSH_KEY:+"set ssh_key '$TEST_SSH_KEY'"}"
   echo "${DISK_LAYOUT:+"set disk_layout $DISK_LAYOUT"}"
   echo "${ACCESS_TOKENS:+"set access_tokens '$ACCESS_TOKENS'"}"
+  echo "${CACHIX_CACHE:+"set cachix_cache $CACHIX_CACHE"}"
   echo "${DEBUG:+"set debug 1"}"
   echo "chain netboot.ipxe"
 } > "$TFTP_DIR/test.ipxe"

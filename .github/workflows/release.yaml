@@ -67,8 +67,16 @@ jobs:
       run: |
         echo "Building Vybovaly release artifacts..."
 
-        # Build
+        # Build main installer
         nix build
+
+        # Build nixos-configurations
+        echo "Building nixos-configurations..."
+        for config_dir in ./nixos-configurations/flakes/*/; do
+          config_name=$(basename "$config_dir")
+          echo "Building configuration: $config_name"
+          nix build "$config_dir" --out-link "result-$config_name"
+        done
 
         # Create artifacts directory
         mkdir -p artifacts
@@ -96,8 +104,15 @@ jobs:
     - name: Create Cachix pin
       run: |
         echo "Creating Cachix pin for release ${{ steps.version.outputs.version }}"
-        # Pin the entire build result (store path)
-        cachix pin ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }} ${{ steps.version.outputs.version }} $(nix build .#default --print-out-paths) --artifact bzImage --artifact checksums.txt --artifact initrd --artifact netboot.ipxe
+        # Pin the main installer artifacts (permanent)
+        cachix pin ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }} ${{ steps.version.outputs.version }} $(nix build .#default --print-out-paths) --artifact bzImage --artifact checksums.txt --artifact initrd --artifact netboot.ipxe --keep-days 713
+
+        # Pin nixos-configurations with expiry
+        for config_dir in ./nixos-configurations/flakes/*/; do
+          config_name=$(basename "$config_dir")
+          echo "Pinning configuration: $config_name"
+          cachix pin ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }} "${{ steps.version.outputs.version }}-$config_name" $(nix build "$config_dir" --print-out-paths) --keep-days 30
+        done
 
     - name: Verify artifacts
       run: |

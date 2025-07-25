@@ -27,6 +27,7 @@ let
     nixos-install-tools
     git
     nix
+    cachix
   ];
 in
 {

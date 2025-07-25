@@ -9,11 +9,14 @@ VYB_HOSTNAME=""
 VYB_DISK_LAYOUT=""
 VYB_FLAKE_URL=""
 VYB_DEBUG=""
-export NIX_USER_CONF_FILES=/nix.conf
+export NIX_USER_CONF_FILES=/root/.config/nix/nix.conf
 
 # Parse kernel command line
 parse_kernel_cmdline() {
     local -a cmdline
+    local access_tokens=""
+    local cache_name=""
+
     if [[ "${#@}" -gt 0 ]]; then
         cmdline=("$@")
     else
@@ -38,7 +41,7 @@ parse_kernel_cmdline() {
                 VYB_FLAKE_URL="${param#*=}"
                 ;;
             vyb.access_tokens=*)
-                echo "extra-access-tokens = ${param#*=}" >> /nix.conf
+                access_tokens="${param#*=}"
                 ;;
             vyb.debug=*)
                 VYB_DEBUG="${param#*=}"
@@ -46,8 +49,22 @@ parse_kernel_cmdline() {
             vyb.debug)
                 VYB_DEBUG=1
                 ;;
+            vyb.cachix=*)
+                cache_name="${param#*=}"
+                ;;
         esac
     done
+
+    if [[ -n "$cache_name" ]]; then
+        echo "Configuring cachix cache: ${cache_name}"
+        mkdir -p "$(dirname "$NIX_USER_CONF_FILES")"
+        cachix use "$cache_name" --mode user-nixconf || echo "Warning: Could not configure cachix cache $cache_name"
+    fi
+    if [[ -n "$access_tokens" ]]; then
+        echo "Configuring access tokens: ${access_tokens%%=*}=..."
+        mkdir -p "$(dirname "$NIX_USER_CONF_FILES")"
+        echo "extra-access-tokens = $access_tokens" >> "$NIX_USER_CONF_FILES"
+    fi
 
     # Debug output if enabled
     if [[ -n "$VYB_DEBUG" ]]; then

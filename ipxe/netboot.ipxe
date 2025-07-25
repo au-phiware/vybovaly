@@ -8,6 +8,7 @@ echo Hostname: ${hostname}
 echo Username: ${username}
 echo SSH Key: ${ssh_key}
 echo Disk Layout: ${disk_layout}
+echo Cachix Cache: ${cachix_cache}
 echo Debug: ${debug}
 echo
 
@@ -35,9 +36,13 @@ set cmdline ${cmdline} vyb.disk_layout=${disk_layout}
 isset ${access_tokens} || goto missing_access_tokens
 set cmdline ${cmdline} vyb.access_tokens=${access_tokens}
 echo Access tokens have been configured
-goto set_debug
+goto set_cachix
 :missing_access_tokens
 echo No access tokens configured, set access_tokens to use a private flake.
+
+:set_cachix
+isset ${cachix_cache} || goto set_debug
+set cmdline ${cmdline} vyb.cachix=${cachix_cache}
 
 :set_debug
 isset ${debug} || goto nixos_boot
