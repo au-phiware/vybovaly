@@ -101,6 +101,15 @@ in
       SUBSYSTEM=="block", KERNEL=="sd[a-z]", ACTION=="add", RUN+="${pkgs.coreutils}/bin/sleep 2"
     '';
 
+    # Disable TTY logins to create kiosk mode
+    systemd.services."getty@tty1".enable = lib.mkDefault false;
+    systemd.services."getty@tty2".enable = lib.mkDefault false;
+    systemd.services."getty@tty3".enable = lib.mkDefault false;
+    systemd.services."getty@tty4".enable = lib.mkDefault false;
+    systemd.services."getty@tty5".enable = lib.mkDefault false;
+    systemd.services."getty@tty6".enable = lib.mkDefault false;
+    systemd.services."autovt@".enable = lib.mkDefault false;
+
     # Systemd service for automation
     systemd.services.vybovaly-installer = {
       description = "NixOS Automated Installation Service";
