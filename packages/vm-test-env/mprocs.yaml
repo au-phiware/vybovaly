@@ -38,6 +38,13 @@ procs:
     cwd: "."
     autostart: false
 
+  HTTP Server:
+    shell: |
+      echo "Starting HTTP server on port $HTTP_PORT..."
+      miniserve --port "$HTTP_PORT" "$HTTP_DIR"
+    cwd: "."
+    autostart: true
+
   SSH:
     shell: |
       echo -n "Enter user [$USERNAME]: "

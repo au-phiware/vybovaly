@@ -6,7 +6,8 @@ let
   testFlakeDir = ../../nixos-configurations/flakes/minimal;
   testFlakeName = "flake.tar.gz";
 
-  tftpDir = pkgs.runCommand "vm-netboot-tftp" { } ''
+  # HTTP directory for miniserve
+  httpDir = pkgs.runCommand "vm-netboot-http" { } ''
     mkdir -p $out;
     ln -s ${installer.kernel}/bzImage $out/
     ln -s ${installer.initrd}/initrd $out/
@@ -16,10 +17,19 @@ let
 in
 pkgs.writeShellApplication {
   name = "vm-netboot-test";
-  runtimeInputs = with pkgs; [ openssh ];
+  runtimeInputs = with pkgs; [
+    openssh
+    miniserve
+    qemu
+    mprocs
+    tigervnc
+    netcat-gnu
+    inetutils
+    nixos-install-tools
+  ];
   text = builtins.readFile ./vm-netboot-test.sh;
   runtimeEnv = {
-    TFTP_SRC = "${tftpDir}";
+    HTTP_DIR = "${httpDir}";
     FLAKE_TARBALL = "${testFlakeName}";
     MPROCS_CONFIG = "${./mprocs.yaml}";
     DEFAULT_CONF = "${./test-params.conf}";
