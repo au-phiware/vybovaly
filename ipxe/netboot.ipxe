@@ -1,0 +1,46 @@
+#!ipxe
+
+echo ========================================
+echo Vybovaly NixOS Automated Installation
+echo ========================================
+echo Flake URL: ${flake_url}
+echo Hostname: ${hostname}
+echo Username: ${username}
+echo SSH Key: ${ssh_key}
+echo Disk Layout: ${disk_layout}
+echo Debug: ${debug}
+echo
+
+# Create kernel command line with our parameters
+isset ${flake_url} || goto set_hostname
+set cmdline ${cmdline} vyb.flake_url=${flake_url}
+
+:set_hostname
+isset ${hostname} || goto set_username
+set cmdline ${cmdline} vyb.hostname=${hostname}
+
+:set_username
+isset ${username} || goto set_ssh_key
+set cmdline ${cmdline} vyb.username=${username}
+
+:set_ssh_key
+isset ${ssh_key} || goto set_disk_layout
+set cmdline ${cmdline} vyb.ssh_key="${ssh_key}"
+
+:set_disk_layout
+isset ${disk_layout} || goto set_access_tokens
+set cmdline ${cmdline} vyb.disk_layout=${disk_layout}
+
+:set_access_tokens
+isset ${access_tokens} || goto missing_access_tokens
+set cmdline ${cmdline} vyb.access_tokens=${access_tokens}
+echo Access tokens have been configured
+goto set_debug
+:missing_access_tokens
+echo No access tokens configured, set access_tokens to use a private flake.
+
+:set_debug
+isset ${debug} || goto nixos_boot
+set cmdline ${cmdline} vyb.debug=${debug}
+
+:nixos_boot

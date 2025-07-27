@@ -37,8 +37,8 @@ jobs:
       run: |
         echo "Building Vybovaly artifacts..."
 
-        # Test the release-artifacts build
-        nix build .#release-artifacts --no-link
+        # Test the build
+        nix build . --no-link
 
         echo "✅ All builds completed successfully"
 
