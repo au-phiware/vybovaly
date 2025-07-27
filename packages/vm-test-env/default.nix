@@ -3,7 +3,7 @@
 let
   # Create flake directory structure using linkFarm
   # Use the examples/flakes/minimal as our test flake
-  testFlakeDir = ../../examples/flakes/minimal;
+  testFlakeDir = ../../nixos-configurations/flakes/minimal;
   testFlakeName = "flake.tar.gz";
 
   tftpDir = pkgs.runCommand "vm-netboot-tftp" {} ''

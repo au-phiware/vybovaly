@@ -36,21 +36,12 @@ jobs:
       run: |
         echo "Building Vybovaly artifacts for testing..."
 
-        # Build the three key artifacts directly from flake
-        nix build .#bzImage --out-link result-bzImage
-        nix build .#initrd --out-link result-initrd
-        nix build .#netboot-ipxe --out-link result-ipxe
+        # Build using the release-artifacts package for consistency
+        nix build .#release-artifacts
 
-        # Create artifacts directory
-        mkdir -p artifacts
-        cp result-bzImage/bzImage artifacts/
-        cp result-initrd/initrd artifacts/
-        cp result-ipxe/netboot.ipxe artifacts/
-
-    - name: Generate and verify checksums
+    - name: Verify checksums
       run: |
-        cd artifacts
-        sha256sum * > checksums.txt
+        cd result
 
         # Verify checksums
         sha256sum -c checksums.txt
@@ -61,7 +52,7 @@ jobs:
         test -f netboot.ipxe
 
         # Validate iPXE scripts
-        grep -q "^#!ipxe" netboot.ipxe
+        head -1 netboot.ipxe | grep -q "^#!ipxe"
 
         echo "✅ All artifacts verified successfully"
 
@@ -74,10 +65,3 @@ jobs:
       run: |
         echo "Testing VM test environment..."
         nix build .#vm-test-env --no-link
-
-    - name: Upload test artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-artifacts-${{ github.event.pull_request.number }}
-        path: artifacts/
-        retention-days: 7
