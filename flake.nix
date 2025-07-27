@@ -189,23 +189,46 @@
         };
 
       in {
-        # Development packages for each variant
-        packages = {
-          # Netboot packages (for iPXE/PXE with patched kernel)
-          installer-minimal-kernel = (buildInstallerImage { variant = "minimal"; }).kernel;
-          installer-minimal-initrd = (buildInstallerImage { variant = "minimal"; }).initrd;
-          installer-minimal-netboot = (buildInstallerImage { variant = "minimal"; }).ipxeScript;
+        # Build artifacts for easy access
+        packages =
+          let
+            minimal = buildInstallerImage { variant = "minimal"; };
+            more = buildInstallerImage { variant = "more"; };
+          in {
+            # Main outputs - the three key artifacts for releases
+            bzImage = minimal.kernel;
+            initrd = minimal.initrd;
+            netboot-ipxe = minimal.ipxeScript;
 
-          installer-more-kernel = (buildInstallerImage { variant = "more"; }).kernel;
-          installer-more-initrd = (buildInstallerImage { variant = "more"; }).initrd;
-          installer-more-netboot = (buildInstallerImage { variant = "more"; }).ipxeScript;
+            # Release bundle - all three artifacts with checksums
+            release-artifacts = pkgs.runCommand "vybovaly-release-artifacts" {} ''
+              mkdir -p $out
 
-          # VM test environment
-          vm-test-env = vmTestEnvironment;
+              # Copy artifacts
+              cp ${minimal.kernel}/bzImage $out/bzImage
+              cp ${minimal.initrd}/initrd $out/initrd
+              cp ${minimal.ipxeScript}/netboot.ipxe $out/netboot.ipxe
 
-          # Default package
-          default = (buildInstallerImage { variant = "minimal"; }).kernel;
-        } // testScripts;
+              # Generate checksums
+              cd $out
+              sha256sum bzImage initrd netboot.ipxe > checksums.txt
+            '';
+
+            # Variant-specific packages (for advanced users)
+            installer-minimal-kernel = minimal.kernel;
+            installer-minimal-initrd = minimal.initrd;
+            installer-minimal-netboot = minimal.ipxeScript;
+
+            installer-more-kernel = more.kernel;
+            installer-more-initrd = more.initrd;
+            installer-more-netboot = more.ipxeScript;
+
+            # VM test environment
+            vm-test-env = vmTestEnvironment;
+
+            # Default package
+            default = minimal.kernel;
+          } // testScripts;
 
         # Development shell
         devShells.default = pkgs.mkShell {

@@ -1,0 +1,83 @@
+name: Test Build
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'installer/**'
+      - 'modules/**'
+      - 'flake.nix'
+      - 'flake.lock'
+      - '.github/workflows/test.yaml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v27
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Cachix
+      uses: cachix/cachix-action@v15
+      with:
+        name: ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }}
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        skipPush: ${{ secrets.CACHIX_AUTH_TOKEN == '' }}
+
+    - name: Build artifacts
+      run: |
+        echo "Building Vybovaly artifacts for testing..."
+
+        # Build the three key artifacts directly from flake
+        nix build .#bzImage --out-link result-bzImage
+        nix build .#initrd --out-link result-initrd
+        nix build .#netboot-ipxe --out-link result-ipxe
+
+        # Create artifacts directory
+        mkdir -p artifacts
+        cp result-bzImage/bzImage artifacts/
+        cp result-initrd/initrd artifacts/
+        cp result-ipxe/netboot.ipxe artifacts/
+
+    - name: Generate and verify checksums
+      run: |
+        cd artifacts
+        sha256sum * > checksums.txt
+
+        # Verify checksums
+        sha256sum -c checksums.txt
+
+        # Check required files exist
+        test -f bzImage
+        test -f initrd
+        test -f netboot.ipxe
+
+        # Validate iPXE scripts
+        grep -q "^#!ipxe" netboot.ipxe
+
+        echo "✅ All artifacts verified successfully"
+
+    - name: Run flake checks
+      run: |
+        echo "Running flake checks..."
+        nix flake check
+
+    - name: Test VM environment build
+      run: |
+        echo "Testing VM test environment..."
+        nix build .#vm-test-env --no-link
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-artifacts-${{ github.event.pull_request.number }}
+        path: artifacts/
+        retention-days: 7

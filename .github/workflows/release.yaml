@@ -1,0 +1,165 @@
+name: Release Artifacts
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'installer/**'
+      - 'flake.nix'
+      - 'flake.lock'
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release'
+        required: true
+        default: 'latest'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Nix
+      uses: cachix/install-nix-action@v27
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Cachix
+      uses: cachix/cachix-action@v15
+      with:
+        name: ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }}
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        skipPush: ${{ secrets.CACHIX_AUTH_TOKEN == '' }}
+
+    - name: Generate version info
+      id: version
+      run: |
+        BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
+
+        if [[ "${{ github.event_name }}" == "release" ]]; then
+          VERSION=${{ github.event.release.tag_name }}
+          RELEASE_TAG=${{ github.event.release.tag_name }}
+        else
+          VERSION=${{ github.event.inputs.tag_name }}
+          RELEASE_TAG=${{ github.event.inputs.tag_name }}
+        fi
+
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "release-tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Build release artifacts
+      run: |
+        echo "Building Vybovaly release artifacts..."
+
+        # Build using the release-artifacts package for consistency
+        nix build .#release-artifacts
+
+        # Create artifacts directory
+        mkdir -p artifacts
+        cp --dereference result/* artifacts/
+
+    - name: Generate version metadata
+      run: |
+        cd artifacts
+
+        # Create version metadata
+        cat > version.json << EOF
+        {
+          "version": "${{ steps.version.outputs.version }}",
+          "build_date": "$BUILD_DATE",
+          "git_commit": "${{ github.sha }}",
+          "base_url": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.release-tag }}",
+          "files": {
+            "kernel": "bzImage",
+            "initrd": "initrd",
+            "netboot_script": "netboot.ipxe"
+          }
+        }
+        EOF
+
+    - name: Create Cachix pin
+      run: |
+        echo "Creating Cachix pin for release ${{ steps.version.outputs.version }}"
+        cachix pin ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }} ${{ steps.version.outputs.version }} \
+          result/bzImage \
+          result/initrd \
+          result/netboot.ipxe \
+          result/checksums.txt
+
+    - name: Verify artifacts
+      run: |
+        cd artifacts
+
+        # Verify checksums
+        sha256sum -c checksums.txt
+
+        # Check required files exist
+        test -f bzImage
+        test -f initrd
+        test -f netboot.ipxe
+        test -f version.json
+
+        # Validate iPXE scripts
+        head -1 netboot.ipxe | grep -q "^#!ipxe"
+
+        # Validate JSON
+        python3 -c "import json; json.load(open('version.json'))"
+
+        echo "✅ All artifacts verified successfully"
+
+    - name: Upload to release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.version.outputs.release-tag }}
+        name: ${{ github.event_name == 'release' && github.event.release.name || format('Vybovaly {0}', steps.version.outputs.version) }}
+        body: |
+          # Vybovaly NixOS Installer
+
+          **Version:** ${{ steps.version.outputs.version }}
+          **Built:** ${{ env.BUILD_DATE }}
+
+          ## Quick Start
+
+          Chain boot this iPXE script with your parameters:
+
+          ```
+          set cmdline vyb.flake_url https://github.com/yourorg/nixos-config
+          set cmdline ${cmdline} vyb.hostname=yourhost
+          set cmdline ${cmdline} vyb.username=yourname
+          set cmdline ${cmdline} vyb.ssh_key="ssh-rsa AAAAB3..."
+          chain https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.release-tag }}/netboot.ipxe
+          ```
+
+          ## Files
+
+          - **bzImage** - Linux kernel
+          - **initrd** - Initial ramdisk
+          - **netboot.ipxe** - iPXE boot script
+          - **checksums.txt** - SHA256 checksums
+          - **version.json** - Build metadata
+
+          All files are available via HTTPS at the same path.
+
+          ## Cachix Pin
+
+          This release is pinned in Cachix as: `${{ steps.version.outputs.version }}`
+
+          To use this exact build:
+
+          ```bash
+          cachix use ${{ vars.CACHIX_CACHE_NAME || 'vybovaly' }}
+          nix build github:${{ github.repository }}/${{ github.sha }}#release-artifacts
+          ```
+        files: artifacts/*
+        prerelease: false
