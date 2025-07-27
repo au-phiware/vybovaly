@@ -23,11 +23,12 @@ raw URLs.
 
 The iPXE script accepts these parameters:
 
-- `username` - User account to create
-- `ssh_key` - SSH public key for authentication
-- `disk_layout` - Disk partitioning scheme (`single` or `raid`)
-- `flake_url` - Git repository URL containing your flake
-- `hostname` - System hostname
+- `flake_url` - Git repository URL containing your flake (required)
+- `username` - User account to create (optional, can be defined in flake)
+- `ssh_key` - SSH public key for authentication (optional, can be defined in
+  flake)
+- `hostname` - System hostname (optional, let nixos-install decided based on
+  flake)
 
 ### 3. Example Usage
 

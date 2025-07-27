@@ -85,13 +85,8 @@ should_run_automation() {
         done
     fi
 
-    # All good if flake URL is given
-    if [[ -n "$VYB_FLAKE_URL" ]]; then
-        return 0
-    fi
-
-    # Otherwise require username and ssh_key for basic configuration
-    [[ -n "$VYB_USERNAME" ]] && [[ -n "$VYB_SSH_KEY" ]]
+    # Flake URL is required for installation
+    [[ -n "$VYB_FLAKE_URL" ]]
 }
 
 # Wait for network connectivity
@@ -126,25 +121,21 @@ run_installer() {
     # Set defaults
     local username="${VYB_USERNAME}"
     local ssh_key="${VYB_SSH_KEY}"
-    local hostname="${VYB_HOSTNAME:-nixos}"
+    local hostname="${VYB_HOSTNAME}"
     local disk_layout="${VYB_DISK_LAYOUT:-single}"
     local flake_url="${VYB_FLAKE_URL}"
 
     echo "Installation parameters:"
-    echo "  Username: $username"
-    echo "  Hostname: $hostname"
+    echo "  Flake URL: $flake_url${hostname:+#$hostname}"
+    echo ${username:+"  Username: $username"}
     echo "  Disk layout: $disk_layout"
-    echo "  Flake URL: $flake_url"
 
     # Validate required parameters
-    if [[ -n "$flake_url" ]]; then
-        echo "Using flake configuration - user details defined in flake"
-    else
-        if [[ -z "$username" ]] || [[ -z "$ssh_key" ]]; then
-            echo "Error: username and ssh_key are required when not using a flake"
-            return 1
-        fi
+    if [[ -z "$flake_url" ]]; then
+        echo "Error: flake_url is required for installation"
+        return 1
     fi
+    echo "Using flake configuration: $flake_url"
 
     # Partition disks
     partition_disks "$disk_layout"
@@ -167,11 +158,6 @@ run_installer() {
 
         # Add automation SSH key if provided and no authorized_keys file exists
         add_automation_ssh_key_if_needed "$username" "$ssh_key"
-    else
-        # Fallback: create basic configuration and install
-        echo "No flake URL provided, creating basic configuration..."
-        create_basic_configuration "$username" "$ssh_key" "$hostname"
-        nixos-install --root /mnt --no-root-passwd --flake '/mnt/etc/nixos#nixos'
     fi
 
     echo "Installation completed successfully!"
@@ -378,66 +364,6 @@ EOF
     echo "RAID disk partitioning completed"
 }
 
-# Create basic NixOS configuration
-create_basic_configuration() {
-    local username="$1"
-    local ssh_key="$2"
-    local hostname="$3"
-
-    echo "Creating NixOS configuration..."
-
-    # Generate hardware configuration
-    echo "Generating hardware configuration..."
-    nixos-generate-config --root /mnt --flake
-
-    cat > /mnt/etc/nixos/configuration.nix << EOF
-{ config, pkgs, ... }:
-
-{
-  imports = [ ./hardware-configuration.nix ];
-
-  # Boot loader
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # Networking
-  networking.hostName = "${hostname:-nixos}";
-  networking.networkmanager.enable = true;
-
-  # SSH
-  services.openssh = {
-    enable = true;
-    settings.PasswordAuthentication = false;
-    settings.PermitRootLogin = "no";
-  };
-
-  # User configuration
-  users.users.$username = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
-    openssh.authorizedKeys.keys = [
-      "$ssh_key"
-    ];
-  };
-
-  # Security
-  security.sudo.wheelNeedsPassword = false;
-
-  # Basic packages
-  environment.systemPackages = with pkgs; [
-    vim git curl wget htop
-  ];
-
-  # Enable flakes
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # Firewall
-  networking.firewall.allowedTCPPorts = [ 22 ];
-
-  system.stateVersion = "25.05";
-}
-EOF
-}
 
 # Add automation SSH key if provided and authorized_keys doesn't exist
 add_automation_ssh_key_if_needed() {
@@ -484,7 +410,6 @@ add_automation_ssh_key_if_needed() {
     chmod 600 "$authorized_keys_file"
 
     echo "Automation SSH key added successfully"
-    echo "Note: This key provides bootstrap access - add your permanent keys via NixOS configuration"
 }
 
 # Main automation function

@@ -186,8 +186,8 @@ Configure these parameters via DHCP options, iPXE script, or interactive prompt:
 
 | Parameter       | Required | Description             | Example             |
 |-----------------|----------|-------------------------|---------------------|
-| `username`      | Yes      | User account to create  | `admin`             |
-| `ssh_key`       | Yes      | SSH public key          | `ssh-rsa AAAAB3...` |
+| `username`      | No       | User account to create  | `admin`             |
+| `ssh_key`       | No       | SSH public key          | `ssh-rsa AAAAB3...` |
 | `hostname`      | No       | System hostname         | `gpu-server-01`     |
 | `flake_url`     | Yes      | Git repository URL      | `https://github.com/org/nixos-config` |
 | `disk_layout`   | No       | Partitioning scheme     | `single`, `raid`    |
