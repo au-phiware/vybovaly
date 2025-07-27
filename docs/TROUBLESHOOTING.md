@@ -216,7 +216,73 @@ sudo iptables -L
 
 ## Flake-Related Issues
 
-### 9. Flake Repository Access
+### 9. GitHub Rate Limiting Issues
+
+#### Symptom: HTTP 403 errors when accessing GitHub API during installation
+
+**Error Example:**
+
+```tty
+[   44.504654] vybovaly-installer-start[1113]:        … while fetching the input 'github:NixOS/nixpkgs/nixos-25.05'
+[   44.505038] vybovaly-installer-start[1113]:        error: unable to download 'https://api.github.com/repos/NixOS/nixpkgs/commits/nixos-25.05': HTTP error 403
+[   44.505363] vybovaly-installer-start[1113]:        response body:
+[   44.505681] vybovaly-installer-start[1113]:        {"message":"API rate limit exceeded for 116.255.53.70. (But here's the good news: Authenticated requests get a higher rate limit. Check out the documentation for more details.)","documentation_url":"https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"}
+```
+
+**Root Cause:**
+
+- GitHub limits unauthenticated API requests to 60 per hour per IP address
+- Nix flake evaluation makes multiple GitHub API calls to resolve dependencies
+- Corporate networks or shared IPs hit rate limits quickly
+
+**Solution:**
+
+Pass a GitHub personal access token via the `access_tokens` parameter:
+
+```ipxe
+#!ipxe
+set username admin
+set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC...
+set flake_url https://github.com/your-org/nixos-config
+set hostname gpu-server-01
+set access_tokens github.com=ghp_your_token_here
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
+```
+
+**Creating a GitHub Personal Access Token:**
+
+1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Click "Generate new token (classic)"
+3. Set expiration (recommend 1 year for production use)
+4. Select scopes: `public_repo` (for public repositories) or `repo` (for private repositories)
+5. Copy the token (starts with `ghp_`)
+
+**For Private Repositories:**
+
+If your flake repository is private, you need a token with `repo` scope:
+
+```ipxe
+set access_tokens github.com=ghp_your_token_with_repo_access
+```
+
+**Multiple Tokens:**
+
+For accessing multiple services, separate with space (don't use quotes):
+
+```ipxe
+set access_tokens github.com=ghp_token1 gitlab.company.com=glpat-token2
+```
+
+For more information see [Nix Reference Manual](https://nix.dev/manual/nix/stable/command-ref/conf-file.html?highlight=access-token#conf-access-tokens).
+
+**Security Note:**
+
+- Store tokens securely - they provide access to your repositories
+- Use fine-grained tokens when possible (GitHub's newer token type)
+- Consider token rotation policies for production environments
+- Never commit tokens to version control
+
+### 10. Flake Repository Access
 
 #### Symptom: Cannot clone flake repository
 

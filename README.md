@@ -1,7 +1,10 @@
-# Vybovaly - Automated Installation System
+# Vybovaly - Automated NixOS Installation System
 
-A comprehensive system for automated NixOS installation on cloud GPU servers
-using iPXE, with support for flake-based configurations and CI/CD integration.
+**Fully automated, zero-touch NixOS deployment via network boot**
+
+Vybovaly creates a "kiosk mode" installation environment that boots directly
+into an automated installer, eliminating manual interaction while providing
+secure remote access for monitoring and debugging.
 
 ## 🚀 Quick Start
 
@@ -22,52 +25,100 @@ using iPXE, with support for flake-based configurations and CI/CD integration.
 - [Troubleshooting](./TROUBLESHOOTING.md)
 - [Contributing](./CONTRIBUTING.md)
 
+## 🎯 Project Objectives
+
+### Primary Goals
+
+- **Zero-Touch Deployment**: Boot a machine and walk away - complete NixOS
+  installation without human intervention
+- **Kiosk Mode Operation**: No TTY access, no user prompts - system boots
+  directly into automated installer using a flake of your choice
+- **Secure Remote Access**: SSH available during installation for monitoring
+  and debugging
+- **Production Ready**: Reliable, repeatable deployments suitable for
+  enterprise environments
+
+### Key Benefits
+
+- **Eliminate Manual Steps**: No more typing usernames, configuring networks,
+  or waiting for prompts
+- **Consistent Deployments**: Every installation follows the exact same process
+  with identical results
+- **Scalable Operations**: Deploy hundreds of machines simultaneously without
+  manual oversight
+- **Secure First**: SSH-key only authentication, no default passwords, minimal
+  attack surface
+- **Flexible Configuration**: Support any NixOS configuration via flakes
+
 ## ✨ Features
 
-### 🎯 Core Features
+### 🎯 Core Automation Features
 
-- **Fully Automated Installation**: Zero-touch NixOS deployment
-- **Parameterized Configuration**: Username, SSH keys, hostname, disk layout via
-  iPXE
-- **Flake Integration**: Automatic system building from your NixOS flake
-- **Multiple Disk Layouts**: Single disk or RAID configurations
-- **GPU Support**: NVIDIA drivers, CUDA, ML stack pre-configured
-- **CI/CD Ready**: GitHub Actions for building and releasing images
+- **Kiosk Mode Boot**: Direct boot to installer - no TTY login, no user
+  interaction required
+- **Parameterized via iPXE**: Username, SSH keys, hostname, disk layout
+  configured through boot parameters
+- **Flake-Based Configuration**: Pull and deploy any NixOS configuration from
+  Git repositories
+- **Network Boot Optimized**: Efficient netboot artifacts for reliable
+  network deployment
+- **Essential Services Only**: Minimal system startup - only network and SSH
+  for monitoring
 
-### 🛠 Technical Features
+### 🛠 Technical Architecture
 
-- **Custom Kernel/Initrd**: Embedded installer with automation
-- **Error Handling**: Comprehensive validation and recovery
-- **Debug Mode**: Verbose logging and troubleshooting tools
-- **Version Pinning**: Reproducible builds with checksums
-- **Multiple Variants**: Minimal, full, and GPU-optimized images
+- **Custom Netboot Module**: Enhanced NixOS netboot with automation
+  capabilities
+- **Embedded Installer**: All automation logic built into the initrd
+  environment
+- **Error Handling**: Comprehensive validation, timeout handling, and recovery
+  mechanisms
+- **Reproducible Builds**: Version pinning, checksums, and Cachix integration
 
-### 🔧 Operations Features
+### 🔧 Operations & Deployment
 
-- **Monitoring Ready**: GPU health checks, system metrics
-- **Security Hardened**: SSH key-only auth, firewall configured
-- **ML/AI Stack**: JupyterLab, MLflow, TensorBoard, VS Code Server
-- **Container Support**: Docker with GPU passthrough
+- **CI/CD Ready**: GitHub Actions for automated building and releasing
+- **Multiple Variants**: Minimal, development, and specialized configurations
+- **Debug Mode**: Verbose logging and troubleshooting capabilities when needed
+- **Version Management**: Tagged releases with artifact checksums for rollback
+  safety
 
 ## 🏗 Architecture
 
+### Boot Flow Overview
+
 ```text
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   iPXE Script   │    │ Custom Kernel/  │    │ Automated       │
-│                 │    │ Initrd          │    │ Installer       │
-│ • Parameters    │───▶│                 │───▶│                 │
-│ • Validation    │    │ • Embedded libs │    │ • Disk setup    │
-│ • Error handling│    │ • Network tools │    │ • NixOS install │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                                        │
-                                                        ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Your Flake    │    │ Post-Install    │    │ Basic NixOS     │
-│                 │    │ Service         │    │ System          │
-│ • GPU modules   │◀───│                 │◀───│                 │
-│ • ML stack      │    │ • Git clone     │    │ • SSH access    │
-│ • Custom config │    │ • Flake rebuild │    │ • Network       │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│   iPXE Script   │    │     Netboot     │    │    Kiosk Mode    │
+│                 │    │    Artifacts    │    │       Boot       │
+│                 │───▶│                 │───▶│                  │
+│ • Parameters    │    │                 │    │ • No TTY login   │
+│ • Kernel        │    │ • kernel        │    │ • Start networkd │
+│ • initrd        │    │ • initrd        │    │ • Start SSH      │
+└─────────────────┘    └─────────────────┘    └──────────────────┘
+                                                        │        
+                                                        ▼        
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────┐
+│      Your       │    │  Target System  │    │    Automated     │
+│ Responsibility  │    │                 │    │   Installation   │
+│                 │◀───│ • Your Flake    │◀───│                  │
+│  Installer has  │    │ • Full NixOS    │    │ • Disk setup     │
+│   no control    │    │ • Custom config │    │ • NixOS install  │
+└─────────────────┘    └─────────────────┘    └──────────────────┘
+```
+
+### Network Boot Optimization
+
+```text
+Traditional Live ISO         Vybovaly Netboot
+┌─────────────────────┐      ┌─────────────────────┐
+│     Live ISO        │      │      iPXE           │
+│                     │      │  kernel + initrd    │
+│  Large download     │ ───▶ │    (optimized)      │
+│  Manual setup       │      │                     │
+│  User interaction   │      │  Automated install  │
+│                     │      │  Zero interaction   │
+└─────────────────────┘      └─────────────────────┘
 ```
 
 ## 🚦 Getting Started
@@ -140,6 +191,7 @@ Configure these parameters via DHCP options, iPXE script, or interactive prompt:
 | `hostname`      | No       | System hostname         | `gpu-server-01`     |
 | `flake_url`     | Yes      | Git repository URL      | `https://github.com/org/nixos-config` |
 | `disk_layout`   | No       | Partitioning scheme     | `single`, `raid`    |
+| `access_tokens` | No       | Git access tokens       | `github.com=pat`    |
 | `debug`         | No       | Enable debug mode       | `0`, `1`            |
 
 ### Example iPXE Script
@@ -153,9 +205,10 @@ set ssh_key ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...
 set flake_url https://github.com/your-org/nixos-gpu-config
 set hostname gpu-server-01
 set disk_layout single
+set access_tokens github.com=ghp_your_github_token_here
 
 # Chain to the installer
-chain https://github.com/au-phiware/vybovaly/releases/latest/download/nixos-install.ipxe
+chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
 ```
 
 ### NixOS Flake Structure
@@ -201,11 +254,9 @@ The GitHub Action builds new images on:
 Each build produces:
 
 - `bzImage` - Custom Linux kernel
-- `initrd` - Initial ramdisk with installer
-- `vybovaly.ipxe` - Main iPXE script
-- `boot-menu.ipxe` - Interactive boot menu
-- `version.json` - Build metadata and checksums
-- `checksums.txt` - SHA256 checksums
+- `initrd` - Initial ramdisk with embedded nix store
+- `netboot.ipxe` - Main iPXE script with automation
+- `checksums.txt` - SHA256 checksums for integrity
 
 ## 💻 Local Development
 
@@ -276,6 +327,7 @@ set username researcher
 set ssh_key ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGq...
 set flake_url https://github.com/ml-lab/gpu-configs
 set hostname ai-workstation-01
+set access_tokens github.com=ghp_your_token_here
 chain https://github.com/au-phiware/vybovaly/releases/latest/download/netboot.ipxe
 ```
 

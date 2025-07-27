@@ -101,13 +101,7 @@
             kernel = netbootSystem.config.system.build.kernel;
             initrd = netbootSystem.config.system.build.netbootRamdisk;
             squashfs = netbootSystem.config.system.build.squashfsStore;
-            ipxeScript = pkgs.runCommand "vybovaly-ipxe-build" {} ''
-              mkdir -p $out
-              {
-                cat ${./ipxe/netboot.ipxe}
-                tail -n +2 ${netbootSystem.config.system.build.netbootIpxeScript}/netboot.ipxe
-              } > $out/netboot.ipxe
-            '';
+            ipxeScript = netbootSystem.config.system.build.netbootIpxeScript;
 
             # For VM testing
             vm = netbootSystem.config.system.build.vm;
@@ -222,7 +216,7 @@
         {
           # Build artifacts for easy access
           packages = {
-            # Release bundle - all three artifacts with checksums
+            # Release bundle - all artifacts with checksums
             default = pkgs.runCommand "vybovaly-build" { } ''
               mkdir -p $out
 

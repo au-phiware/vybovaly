@@ -107,18 +107,10 @@ wait_for_network() {
             return 1
         fi
 
-        # Test connectivity by trying to reach the flake URL if provided
-        if [[ -n "$VYB_FLAKE_URL" ]]; then
-            if curl -s -o /dev/null "$VYB_FLAKE_URL"; then
-                echo "Network connectivity established (can reach flake URL)"
-                return 0
-            fi
-        else
-            # Fallback: try to reach Nix cache (needed for installation anyway)
-            if curl -I -s -w "%{http_code}" -o /dev/null "https://cache.nixos.org/nix-cache-info"; then
-                echo "Network connectivity established (can reach Nix cache)"
-                return 0
-            fi
+        # Test connectivity by trying to reach Nix cache (needed for installation)
+        if curl -I -s -w "%{http_code}" -o /dev/null "https://cache.nixos.org/nix-cache-info"; then
+            echo "Network connectivity established (can reach Nix cache)"
+            return 0
         fi
 
         echo "Waiting for network... (attempt $((retries + 1))/$max_retries)"

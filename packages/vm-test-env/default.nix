@@ -11,7 +11,6 @@ let
     ln -s ${installer.kernel}/bzImage $out/
     ln -s ${installer.initrd}/initrd $out/
     ln -s ${installer.ipxeScript}/netboot.ipxe $out/
-    ln -s ${installer.squashfs} $out/squashfs.img
     ${pkgs.gnutar}/bin/tar -czf $out/${testFlakeName} -C ${testFlakeDir} --dereference .;
   '';
 in

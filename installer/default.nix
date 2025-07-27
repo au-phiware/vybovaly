@@ -35,9 +35,8 @@ in
     enable = mkEnableOption "Automated NixOS installer";
   };
 
-  # Base system configuration for netboot using official NixOS netboot module
   imports = [
-    (modulesPath + "/installer/netboot/netboot.nix")
+    (import ./netboot-override.nix modulesPath)
   ];
 
   config = mkIf cfg.enable {
