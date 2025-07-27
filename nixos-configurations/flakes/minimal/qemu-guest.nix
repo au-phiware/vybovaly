@@ -3,7 +3,8 @@
 
 {
   imports =
-    [ (modulesPath + "/profiles/minimal.nix")
+    [
+      (modulesPath + "/profiles/minimal.nix")
       (modulesPath + "/profiles/qemu-guest.nix")
     ];
 
@@ -99,12 +100,14 @@
 
   # Filesystem configuration (should match disko labels)
   fileSystems."/" =
-    { device = "/dev/disk/by-label/nixos";
+    {
+      device = "/dev/disk/by-label/nixos";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-label/boot";
+    {
+      device = "/dev/disk/by-label/boot";
       fsType = "ext4";
     };
 

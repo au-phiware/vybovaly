@@ -2,30 +2,26 @@
   description = "GPU compute server with Jupyter notebook environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    vybovaly-installer = {
-      url = "path:../../..";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
   };
 
-  outputs = { self, nixpkgs, vybovaly-installer }:
+  outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
     in
     {
       nixosConfigurations.gpu-compute = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
           # Import the GPU and ML stack modules
-          vybovaly-installer.nixosModules.gpu-server
-          vybovaly-installer.nixosModules.ml-stack
+          ../../../modules/gpu.nix
+          ../../../modules/ml-stack.nix
 
           {
-            # Basic system configuration
-            system.stateVersion = "24.05";
-
             # Enable flakes
             nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
@@ -46,10 +42,6 @@
             users.users.mluser = {
               isNormalUser = true;
               extraGroups = [ "wheel" "gpu" "docker" ];
-              openssh.authorizedKeys.keys = [
-                # Add your SSH public key here
-                # "ssh-rsa AAAAB3NzaC1yc2EAAAA..."
-              ];
             };
 
             # Enable ML stack with Jupyter
@@ -80,11 +72,19 @@
               };
             };
 
+            # Enable ML stack with Jupyter
+            services.gpu-server = {
+              enable = true;
+              nvidia.enable = true;
+              cuda.enable = true;
+              docker.enable = true;
+              monitoring.enable = true;
+            };
+
             # Additional packages for GPU compute
             environment.systemPackages = with pkgs; [
               # System monitoring
               htop
-              nvtop
               iotop
               tmux
               screen
@@ -99,14 +99,7 @@
 
               # GPU utilities
               cudatoolkit
-              nvidia-docker
             ];
-
-            # Docker for containerized ML workloads
-            virtualisation.docker = {
-              enable = true;
-              enableNvidia = true;
-            };
 
             # Ensure data directories have proper permissions
             systemd.tmpfiles.rules = [
@@ -117,18 +110,28 @@
               "d /data/notebooks 0755 root users -"
             ];
 
-            # Performance optimizations for ML workloads
-            boot.kernel.sysctl = {
-              # Increase shared memory for large datasets
-              "kernel.shmmax" = 68719476736; # 64GB
-              "kernel.shmall" = 4294967296;  # 16GB in pages
-
-              # Network optimizations
-              "net.core.rmem_max" = 134217728;
-              "net.core.wmem_max" = 134217728;
-              "net.ipv4.tcp_rmem" = "4096 65536 134217728";
-              "net.ipv4.tcp_wmem" = "4096 65536 134217728";
+            boot.loader.grub = {
+              enable = true;
+              efiSupport = false;
+              device = "/dev/vda";
+              useOSProber = false;
             };
+
+            # Filesystem configuration (should match disko labels)
+            fileSystems."/" =
+              {
+                device = "/dev/disk/by-label/nixos";
+                fsType = "ext4";
+              };
+
+            fileSystems."/boot" =
+              {
+                device = "/dev/disk/by-label/boot";
+                fsType = "ext4";
+              };
+
+            # Basic system configuration
+            system.stateVersion = "25.05";
           }
         ];
       };

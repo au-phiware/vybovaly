@@ -18,8 +18,8 @@ Vybovaly Automated Installation System.
 
   ```bash
   # Fork on GitHub, then clone your fork
-  git clone https://github.com/au-phiware/vybovaly-installer
-  cd vybovaly-installer
+  git clone https://github.com/au-phiware/vybovaly
+  cd vybovaly
   ```
 
 - **Set up development environment**

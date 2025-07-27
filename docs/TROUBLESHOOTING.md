@@ -75,30 +75,6 @@ grep dns-server /etc/dnsmasq.d/pxe.conf
 
 ## Installation Process Issues
 
-### 3. Installer Script Download Failures
-
-#### Symptom: Cannot download installer script
-
-**Debug steps:**
-
-```bash
-# From installer environment
-curl -v http://your-server.com/vybovaly-installer.sh
-wget -O - http://your-server.com/vybovaly-installer.sh
-
-# Check HTTP server logs
-tail -f /var/log/nginx/access.log
-tail -f /var/log/nginx/error.log
-```
-
-#### Symptom: Script permissions denied
-
-```bash
-# Fix permissions on server
-sudo chmod +x /var/www/html/vybovaly-installer.sh
-sudo chown www-data:www-data /var/www/html/vybovaly-installer.sh
-```
-
 ### 4. Disk Partitioning Issues
 
 #### Symptom: Disk not found

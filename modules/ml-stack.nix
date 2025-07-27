@@ -156,10 +156,10 @@ in
       tmux
       screen
       htop
-      nvtop
+      nvtopPackages.full
 
       # Data tools
-      unstable.dvc
+      dvc
       rclone
       rsync
 
@@ -168,7 +168,7 @@ in
       podman
 
       # VS Code server (if enabled)
-      (mkIf cfg.vscode-server.enable unstable.code-server)
+      (mkIf cfg.vscode-server.enable code-server)
     ];
 
     # JupyterLab service
@@ -265,7 +265,7 @@ in
       };
 
       script = ''
-        ${pkgs.unstable.code-server}/bin/code-server \
+        ${pkgs.code-server}/bin/code-server \
           --bind-addr 0.0.0.0:${toString cfg.vscode-server.port} \
           --auth none \
           --disable-telemetry

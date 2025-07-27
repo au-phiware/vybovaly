@@ -14,7 +14,11 @@ export NIX_USER_CONF_FILES=/nix.conf
 # Parse kernel command line
 parse_kernel_cmdline() {
     local -a cmdline
-    eval "cmdline=($(cat /proc/cmdline))"
+    if [[ "${#@}" -gt 0 ]]; then
+        cmdline=("$@")
+    else
+        eval "cmdline=($(cat /proc/cmdline))"
+    fi
 
     for param in "${cmdline[@]}"; do
         case $param in
@@ -44,11 +48,17 @@ parse_kernel_cmdline() {
                 ;;
         esac
     done
+
+    # Debug output if enabled
+    if [[ -n "$VYB_DEBUG" ]]; then
+        echo "Debug mode enabled"
+        set -x
+    fi
 }
 
 # Check if automation should run
 should_run_automation() {
-    parse_kernel_cmdline
+    parse_kernel_cmdline "$@"
 
     if [[ -n "$VYB_SSH_KEY" ]]; then
         for f in /root/.ssh/authorized_keys /root/.ssh/authorized_keys2 /etc/ssh/authorized_keys.d/root; do
@@ -474,12 +484,6 @@ run_automated_installation() {
 
     # Parse command line
     parse_kernel_cmdline
-
-    # Debug output if enabled
-    if [[ -n "$VYB_DEBUG" ]]; then
-        echo "Debug mode enabled"
-        set -x
-    fi
 
     # Wait for network
     wait_for_network || {
